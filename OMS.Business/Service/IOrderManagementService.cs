@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using OMS.Business.Model;
 using Tangent.CeviriDukkani.Domain.Common;
+using Tangent.CeviriDukkani.Domain.Dto.Request;
 using Tangent.CeviriDukkani.Domain.Dto.Translation;
 
 namespace OMS.Business.Service {

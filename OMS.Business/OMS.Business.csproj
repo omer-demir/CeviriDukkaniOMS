@@ -89,7 +89,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Domain, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDükkanıCommon.1.0.2\lib\Tangent.CeviriDukkani.Domain.dll</HintPath>
+      <HintPath>..\packages\CeviriDükkanıCommon.1.0.2.1\lib\Tangent.CeviriDukkani.Domain.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Event, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -105,13 +105,15 @@
     <Compile Include="ExternalClients\DocumentServiceClient.cs" />
     <Compile Include="ExternalClients\IDocumentServiceClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Model\CreateOrderRequest.cs" />
     <Compile Include="Service\IOrderManagementService.cs" />
     <Compile Include="Service\OrderManagementService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Model\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
