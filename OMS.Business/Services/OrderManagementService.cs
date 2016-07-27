@@ -18,20 +18,26 @@ using Tangent.CeviriDukkani.Event.DocumentEvents;
 using Tangent.CeviriDukkani.Messaging;
 using Tangent.CeviriDukkani.Messaging.Producer;
 
-namespace OMS.Business.Service {
+namespace OMS.Business.Services {
     public class OrderManagementService : IOrderManagementService {
         internal const decimal VatAmount = 0.18M;
         private readonly CeviriDukkaniModel _model;
         private readonly CustomMapperConfiguration _mapper;
         private readonly IDispatchCommits _dispatcher;
         private readonly IDocumentServiceClient _documentServiceClient;
+        private readonly ITranslationService _translationService;
 
 
-        public OrderManagementService(CeviriDukkaniModel model, CustomMapperConfiguration mapper, IDispatchCommits dispatcher, IDocumentServiceClient documentServiceClient) {
+        public OrderManagementService(CeviriDukkaniModel model,
+            CustomMapperConfiguration mapper,
+            IDispatchCommits dispatcher,
+            IDocumentServiceClient documentServiceClient,
+            ITranslationService translationService) {
             _model = model;
             _mapper = mapper;
             _dispatcher = dispatcher;
             _documentServiceClient = documentServiceClient;
+            _translationService = translationService;
         }
 
         #region Implementation of IOrderService
@@ -65,9 +71,20 @@ namespace OMS.Business.Service {
                     throw new BusinessException(ExceptionCodes.UnableToSave);
                 }
 
+
+                //translation service call edilecek
+                var averageDocumentPartCount = _translationService.GetAverageDocumentPartCount(newOrder.Id);
+                if (averageDocumentPartCount.ServiceResultType != ServiceResultType.Success) {
+                    throw new Exception("Unable to retrieve related translators and average document part count");
+                }
+
+
                 var createDocumentPartEvent = new CreateDocumentPartEvent {
-                    TranslationDocumentId = newOrder.TranslationDocumentId,
-                    TranslationQualityId = newOrder.TranslationQualityId
+                    TranslationDocumentId = translationDocument.Id,
+                    PartCount = Int32.Parse(averageDocumentPartCount.Data.ToString()),
+                    CreatedBy = 0,
+                    Id = Guid.NewGuid(),
+                    OrderId = newOrder.Id
                 };
 
                 _dispatcher.Dispatch(new List<EventMessage> {

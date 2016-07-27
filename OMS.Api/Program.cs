@@ -6,7 +6,7 @@ using Autofac;
 using Autofac.Integration.WebApi;
 using Microsoft.Owin.Hosting;
 using OMS.Business.ExternalClients;
-using OMS.Business.Service;
+using OMS.Business.Services;
 using RabbitMQ.Client;
 using Tangent.CeviriDukkani.Data.Model;
 using Tangent.CeviriDukkani.Domain.Mappers;
@@ -16,7 +16,7 @@ using Tangent.CeviriDukkani.Messaging.Producer;
 namespace OMS.Api {
     class Program {
         static void Main(string[] args) {
-            string baseAddress = "http://localhost:8000/";
+            string baseAddress = "http://localhost:8002/";
             Bootstrapper();
 
             var webApp = WebApp.Start<Startup>(url: baseAddress);
@@ -34,7 +34,6 @@ namespace OMS.Api {
             builder.RegisterEvents(settings);
             builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
 
-
             builder.RegisterType<OmsEventProjection>().AsSelf().SingleInstance();
 
             Container = builder.Build();
@@ -51,7 +50,8 @@ namespace OMS.Api {
         }
 
         public static void RegisterBusiness(this ContainerBuilder builder) {
-            builder.RegisterType<IDocumentServiceClient>().As<DocumentServiceClient>().InstancePerLifetimeScope();
+            builder.RegisterType<DocumentServiceClient>().As<IDocumentServiceClient>().InstancePerLifetimeScope();
+            builder.RegisterType<UserServiceClient>().As<IUserServiceClient>().InstancePerLifetimeScope();
             builder.RegisterType<OrderManagementService>().As<IOrderManagementService>().InstancePerLifetimeScope();
         }
 

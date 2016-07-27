@@ -1,5 +1,5 @@
 ﻿using System;
-using OMS.Business.Service;
+using OMS.Business.Services;
 using RabbitMQ.Client;
 using Tangent.CeviriDukkani.Domain.Common;
 using Tangent.CeviriDukkani.Event.DocumentEvents;
