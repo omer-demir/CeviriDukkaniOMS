@@ -7,13 +7,12 @@ using Tangent.CeviriDukkani.Domain.Dto.Document;
 
 namespace OMS.Business.ExternalClients {
     public class DocumentServiceClient:IDocumentServiceClient {
-        private readonly string _documentServiceEndpoint;
-        private HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
 
         public DocumentServiceClient() {
-            _documentServiceEndpoint = ConfigurationManager.AppSettings["DocumentServiceEndpoint"];
+            var documentServiceEndpoint = ConfigurationManager.AppSettings["DocumentServiceEndpoint"];
             _httpClient = new HttpClient {
-                BaseAddress = new Uri(_documentServiceEndpoint)
+                BaseAddress = new Uri(documentServiceEndpoint)
             };
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

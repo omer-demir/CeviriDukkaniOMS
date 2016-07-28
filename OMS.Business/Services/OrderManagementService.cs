@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using System.Reflection;
+using log4net;
 using OMS.Business.ExternalClients;
 using Tangent.CeviriDukkani.Data.Model;
 using Tangent.CeviriDukkani.Domain.Common;
@@ -15,6 +17,7 @@ using Tangent.CeviriDukkani.Domain.Exceptions;
 using Tangent.CeviriDukkani.Domain.Exceptions.ExceptionCodes;
 using Tangent.CeviriDukkani.Domain.Mappers;
 using Tangent.CeviriDukkani.Event.DocumentEvents;
+using Tangent.CeviriDukkani.Logging;
 using Tangent.CeviriDukkani.Messaging;
 using Tangent.CeviriDukkani.Messaging.Producer;
 
@@ -26,18 +29,21 @@ namespace OMS.Business.Services {
         private readonly IDispatchCommits _dispatcher;
         private readonly IDocumentServiceClient _documentServiceClient;
         private readonly ITranslationService _translationService;
+        private readonly ILog _logger;
 
 
         public OrderManagementService(CeviriDukkaniModel model,
             CustomMapperConfiguration mapper,
             IDispatchCommits dispatcher,
             IDocumentServiceClient documentServiceClient,
-            ITranslationService translationService) {
+            ITranslationService translationService,
+            ILog logger) {
             _model = model;
             _mapper = mapper;
             _dispatcher = dispatcher;
             _documentServiceClient = documentServiceClient;
             _translationService = translationService;
+            _logger = logger;
         }
 
         #region Implementation of IOrderService
@@ -45,6 +51,7 @@ namespace OMS.Business.Services {
         public ServiceResult CreateOrder(CreateTranslationOrderRequestDto orderRequest) {
             var serviceResult = new ServiceResult(ServiceResultType.NotKnown);
             try {
+                _logger.Info($"New order creation request obtained {DateTime.Now.ToString("d")}");
 
                 var newOrder = new Order {
                     SourceLanguageId = orderRequest.SourceLanguageId,
@@ -63,6 +70,7 @@ namespace OMS.Business.Services {
                 newOrder.CalculatedPrice = orderPrice;
                 newOrder.VatPrice = orderPrice * VatAmount;
 
+                _logger.Info("Order creating...");
                 _model.Orders.Add(newOrder);
 
                 var saveResult = _model.SaveChanges() > 0;
@@ -87,6 +95,8 @@ namespace OMS.Business.Services {
                     OrderId = newOrder.Id
                 };
 
+                _logger.Info($"CreateDocumentPartEvent is firing with order Id {newOrder.Id}");
+
                 _dispatcher.Dispatch(new List<EventMessage> {
                     createDocumentPartEvent.ToEventMessage()
                 });
@@ -94,6 +104,8 @@ namespace OMS.Business.Services {
                 serviceResult.ServiceResultType = ServiceResultType.Success;
                 serviceResult.Data = _mapper.GetMapDto<OrderDto, Order>(newOrder);
             } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+
                 serviceResult.Exception = exc;
                 serviceResult.ServiceResultType = ServiceResultType.Fail;
             }
@@ -125,6 +137,7 @@ namespace OMS.Business.Services {
                 serviceResult.Data = order.OrderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a));
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
                 serviceResult.Exception = exc;
                 serviceResult.ServiceResultType = ServiceResultType.Fail;
             }

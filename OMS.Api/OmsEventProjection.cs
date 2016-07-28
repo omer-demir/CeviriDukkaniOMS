@@ -1,4 +1,5 @@
 ﻿using System;
+using log4net;
 using OMS.Business.Services;
 using RabbitMQ.Client;
 using Tangent.CeviriDukkani.Domain.Common;
@@ -9,11 +10,13 @@ using Tangent.CeviriDukkani.Messaging.Consumer;
 namespace OMS.Api {
     public class OmsEventProjection {
         private readonly IOrderManagementService _orderManagementService;
+        private readonly ILog _logger;
         private readonly RabbitMqSubscription _consumer;
 
-        public OmsEventProjection(IConnection connection, IOrderManagementService orderManagementService) {
+        public OmsEventProjection(IConnection connection, IOrderManagementService orderManagementService,ILog logger) {
             _orderManagementService = orderManagementService;
-            _consumer = new RabbitMqSubscription(connection, "Cev-Exchange");
+            _logger = logger;
+            _consumer = new RabbitMqSubscription(connection, "Cev-Exchange", _logger);
             _consumer
                 .WithAppName("oms-projection")
                 .WithEvent<CreateOrderDetailEvent>(Handle);
