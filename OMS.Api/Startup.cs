@@ -9,11 +9,7 @@ namespace OMS.Api {
         public void Configuration(IAppBuilder appBuilder) {
             // Configure Web API for self-host. 
             HttpConfiguration config = new HttpConfiguration();
-            config.Routes.MapHttpRoute(
-                name: "DefaultApi",
-                routeTemplate: "api/{controller}/{id}",
-                defaults: new { id = RouteParameter.Optional }
-            );
+            config.MapHttpAttributeRoutes();
 
 
             config.DependencyResolver = new AutofacWebApiDependencyResolver(Program.Container);
