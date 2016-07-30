@@ -9,9 +9,9 @@ namespace OMS.Business.ExternalClients {
         private readonly HttpClient _httpClient;
 
         public UserServiceClient() {
-            var documentServiceEndpoint = ConfigurationManager.AppSettings["DocumentServiceEndpoint"];
+            var serviceEndpoint = ConfigurationManager.AppSettings["UserServiceEndpoint"];
             _httpClient = new HttpClient {
-                BaseAddress = new Uri(documentServiceEndpoint)
+                BaseAddress = new Uri(serviceEndpoint)
             };
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

@@ -4,6 +4,7 @@ using System.Data.Entity;
 using System.Linq;
 using System.Reflection;
 using log4net;
+using Newtonsoft.Json;
 using OMS.Business.ExternalClients;
 using Tangent.CeviriDukkani.Data.Model;
 using Tangent.CeviriDukkani.Domain.Common;
@@ -11,12 +12,14 @@ using Tangent.CeviriDukkani.Domain.Dto.Document;
 using Tangent.CeviriDukkani.Domain.Dto.Enums;
 using Tangent.CeviriDukkani.Domain.Dto.Request;
 using Tangent.CeviriDukkani.Domain.Dto.Sale;
+using Tangent.CeviriDukkani.Domain.Dto.System;
 using Tangent.CeviriDukkani.Domain.Dto.Translation;
 using Tangent.CeviriDukkani.Domain.Entities.Sale;
 using Tangent.CeviriDukkani.Domain.Exceptions;
 using Tangent.CeviriDukkani.Domain.Exceptions.ExceptionCodes;
 using Tangent.CeviriDukkani.Domain.Mappers;
 using Tangent.CeviriDukkani.Event.DocumentEvents;
+using Tangent.CeviriDukkani.Event.MailEvents;
 using Tangent.CeviriDukkani.Logging;
 using Tangent.CeviriDukkani.Messaging;
 using Tangent.CeviriDukkani.Messaging.Producer;
@@ -30,6 +33,7 @@ namespace OMS.Business.Services {
         private readonly IDocumentServiceClient _documentServiceClient;
         private readonly ITranslationService _translationService;
         private readonly ILog _logger;
+        private readonly IUserServiceClient _userServiceClient;
 
 
         public OrderManagementService(CeviriDukkaniModel model,
@@ -37,13 +41,15 @@ namespace OMS.Business.Services {
             IDispatchCommits dispatcher,
             IDocumentServiceClient documentServiceClient,
             ITranslationService translationService,
-            ILog logger) {
+            ILog logger,
+            IUserServiceClient userServiceClient) {
             _model = model;
             _mapper = mapper;
             _dispatcher = dispatcher;
             _documentServiceClient = documentServiceClient;
             _translationService = translationService;
             _logger = logger;
+            _userServiceClient = userServiceClient;
         }
 
         #region Implementation of IOrderService
@@ -66,7 +72,7 @@ namespace OMS.Business.Services {
                 var translationDocument = CreateTranslationDocumentForOrder(orderRequest);
                 newOrder.TranslationDocumentId = translationDocument.Id;
 
-                var orderPrice = CalculatOrderPrice(orderRequest);
+                var orderPrice = CalculateOrderPrice(orderRequest, orderRequest.TerminologyId);
                 newOrder.CalculatedPrice = orderPrice;
                 newOrder.VatPrice = orderPrice * VatAmount;
 
@@ -122,10 +128,13 @@ namespace OMS.Business.Services {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
 
+                //TODO for test purpose
                 order.OrderDetails = translationOperations.Select(a => new OrderDetail {
                     AveragePrice = 1,
                     TranslationOperationId = a.Id,
-                    OfferedPrice = 1
+                    OfferedPrice = 1,
+                    CreatedBy = 1,
+                    OrderId = orderId
                 }).ToList();
 
                 _model.Entry(order).State = EntityState.Modified;
@@ -133,6 +142,23 @@ namespace OMS.Business.Services {
                 if (!updateResult) {
                     throw new BusinessException(ExceptionCodes.UnableToUpdate);
                 }
+
+                var relatedTranslatorsResult = _userServiceClient.GetTranslatorsAccordingToOrderTranslationQuality(orderId);
+                var relatedTranslators = Newtonsoft.Json.JsonConvert.DeserializeObject<List<UserDto>>(relatedTranslatorsResult.Data.ToString());
+
+
+                var sendMailEvent = new SendMailEvent {
+                    Id = Guid.NewGuid(),
+                    MailSender = MailSenderTypeEnum.System,
+                    CreatedBy = 1,
+                    Message = "Notify translators for new job",
+                    Subject = "New Document Ready to Work on!",
+                    To = relatedTranslators.Select(a => a.Email).ToList()
+                };
+
+                _dispatcher.Dispatch(new List<EventMessage> {
+                    sendMailEvent.ToEventMessage()
+                });
 
                 serviceResult.Data = order.OrderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a));
                 serviceResult.ServiceResultType = ServiceResultType.Success;
@@ -147,7 +173,7 @@ namespace OMS.Business.Services {
 
         #endregion
 
-        private decimal CalculatOrderPrice(CreateTranslationOrderRequestDto orderRequest) {
+        private decimal CalculateOrderPrice(CreateTranslationOrderRequestDto orderRequest, int terminologyId) {
             var translationUnitPriceList =
                 _model.PriceLists.Where(
                     a =>
@@ -168,7 +194,15 @@ namespace OMS.Business.Services {
                 orderPrice = translationUnitPriceList.Select(a => a.Char_500_More).Sum();
             }
 
-            return orderPrice * orderRequest.CharCountWithSpaces;
+            var terminologyRate = _model.TerminologyPriceRate.FirstOrDefault(a => a.TerminologyId == terminologyId);
+            if (terminologyRate == null) {
+                throw new Exception($"There is no defined terminology price rate for {terminologyId}");
+            }
+
+
+            var calculatedPrice = orderPrice * orderRequest.CharCountWithSpaces;
+            calculatedPrice += calculatedPrice * terminologyRate.Rate;
+            return calculatedPrice;
 
         }
 
@@ -185,7 +219,9 @@ namespace OMS.Business.Services {
                 throw new BusinessException(ExceptionCodes.UnableToInsert);
             }
 
-            var translationDocument = translationDocumentSaveResult.Data as TranslationDocumentDto;
+            var translationDocument = JsonConvert.DeserializeObject<TranslationDocumentDto>(translationDocumentSaveResult.Data.ToString());
+
+            //var translationDocument =  as TranslationDocumentDto;
             return translationDocument;
         }
     }

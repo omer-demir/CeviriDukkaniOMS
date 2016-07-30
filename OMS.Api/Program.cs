@@ -35,7 +35,7 @@ namespace OMS.Api {
 
             CustomLogger.Logger.Info($"OMS service is down with projections {DateTime.Today}");
 
-            Container.Resolve<IConnection>().Close();
+            //Container.Resolve<IConnection>().Close();
         }
 
         public static void Bootstrapper() {

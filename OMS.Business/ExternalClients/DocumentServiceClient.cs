@@ -19,7 +19,7 @@ namespace OMS.Business.ExternalClients {
         }
 
         public ServiceResult CreateDocument(TranslationDocumentDto documentDto) {
-            var response = _httpClient.PostAsJsonAsync("api/documentapi/createTranslationDocument", documentDto).Result;
+            var response = _httpClient.PostAsJsonAsync("api/documentapi/addTranslationDocument", documentDto).Result;
             return response.Content.ReadAsAsync<ServiceResult>().Result;
 
         }

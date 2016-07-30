@@ -70,7 +70,7 @@ namespace OMS.Tests.Service {
             loggerMock.Setup(a => a.Error(It.IsAny<object>()));
             loggerMock.Setup(a => a.Info(It.IsAny<object>()));
 
-            orderManagementService=new OrderManagementService(mockModel.Object,new CustomMapperConfiguration(), dispatcherMock.Object,documentClientService.Object,translationServiceMock.Object, loggerMock.Object);
+            orderManagementService=new OrderManagementService(mockModel.Object,new CustomMapperConfiguration(), dispatcherMock.Object,documentClientService.Object,translationServiceMock.Object, loggerMock.Object,null);
         }
 
         [Test]
