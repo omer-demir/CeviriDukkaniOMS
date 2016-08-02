@@ -54,8 +54,8 @@ namespace OMS.Business.Services {
 
         #region Implementation of IOrderService
 
-        public ServiceResult CreateOrder(CreateTranslationOrderRequestDto orderRequest) {
-            var serviceResult = new ServiceResult(ServiceResultType.NotKnown);
+        public ServiceResult<OrderDto> CreateOrder(CreateTranslationOrderRequestDto orderRequest) {
+            var serviceResult = new ServiceResult<OrderDto>();
             try {
                 _logger.Info($"New order creation request obtained {DateTime.Now.ToString("d")}");
 
@@ -119,8 +119,8 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult CreateOrderDetails(List<TranslationOperationDto> translationOperations, int orderId) {
-            var serviceResult = new ServiceResult(ServiceResultType.NotKnown);
+        public ServiceResult<List<OrderDetailDto>> CreateOrderDetails(List<TranslationOperationDto> translationOperations, int orderId) {
+            var serviceResult = new ServiceResult<List<OrderDetailDto>>();
             try {
                 var order = _model.Orders.FirstOrDefault(a => a.Id == orderId);
                 if (order == null) {
@@ -144,7 +144,7 @@ namespace OMS.Business.Services {
                 }
 
                 var relatedTranslatorsResult = _userServiceClient.GetTranslatorsAccordingToOrderTranslationQuality(orderId);
-                var relatedTranslators = Newtonsoft.Json.JsonConvert.DeserializeObject<List<UserDto>>(relatedTranslatorsResult.Data.ToString());
+                var relatedTranslators = JsonConvert.DeserializeObject<List<UserDto>>(relatedTranslatorsResult.Data.ToString());
 
 
                 var sendMailEvent = new SendMailEvent {
@@ -160,7 +160,84 @@ namespace OMS.Business.Services {
                     sendMailEvent.ToEventMessage()
                 });
 
-                serviceResult.Data = order.OrderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a));
+                serviceResult.Data = order.OrderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a)).ToList();
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<List<OrderDto>> GetOrders() {
+            var serviceResult = new ServiceResult<List<OrderDto>>();
+            try {
+                var orderList = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).ToList();
+                serviceResult.Data = orderList.Select(a => _mapper.GetMapDto<OrderDto, Order>(a)).ToList();
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<OrderDto> GetOrderById(int orderId) {
+            var serviceResult = new ServiceResult<OrderDto>();
+            try {
+                var order = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderId);
+                if (order == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+                serviceResult.Data = _mapper.GetMapDto<OrderDto, Order>(order);
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<OrderDto> UpdateOrder(OrderDto orderDto) {
+            var serviceResult = new ServiceResult<OrderDto>();
+            try {
+                var order = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderDto.Id);
+                if (order == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+                serviceResult.Data = _mapper.GetMapDto<OrderDto, Order>(order);
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult DeactivateOrder(int orderId) {
+            var serviceResult = new ServiceResult(ServiceResultType.NotKnown);
+            try {
+                var order = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderId);
+                if (order == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+                order.Active = false;
+
+                _model.Entry(order).State = EntityState.Modified;
+                var result = _model.SaveChanges() > 0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = true;
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
