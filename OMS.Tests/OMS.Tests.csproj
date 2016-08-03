@@ -84,11 +84,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Domain, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDükkanıCommon.1.0.2.14\lib\Tangent.CeviriDukkani.Domain.dll</HintPath>
+      <HintPath>..\packages\CeviriDükkanıCommon.1.0.2.17\lib\Tangent.CeviriDukkani.Domain.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Messaging, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDukkaniMessaging.1.0.2.8\lib\Tangent.CeviriDukkani.Messaging.dll</HintPath>
+      <HintPath>..\packages\CeviriDukkaniMessaging.1.0.2.9\lib\Tangent.CeviriDukkani.Messaging.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>

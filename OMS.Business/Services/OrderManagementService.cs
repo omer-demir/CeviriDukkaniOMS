@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using log4net;
+using LinqKit;
 using Newtonsoft.Json;
 using OMS.Business.ExternalClients;
 using Tangent.CeviriDukkani.Data.Model;
@@ -174,7 +176,13 @@ namespace OMS.Business.Services {
         public ServiceResult<List<OrderDto>> GetOrders() {
             var serviceResult = new ServiceResult<List<OrderDto>>();
             try {
-                var orderList = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).ToList();
+                var orderList = _model.Orders
+                    .Include(a => a.OrderDetails)
+                    .Include(a => a.SourceLanguage)
+                    .Include(a => a.Customer)
+                    .Include(a => a.TranslationQuality)
+                    .Include(a => a.Terminology)
+                    .Include(a => a.OrderStatus).ToList();
                 serviceResult.Data = orderList.Select(a => _mapper.GetMapDto<OrderDto, Order>(a)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
@@ -238,6 +246,42 @@ namespace OMS.Business.Services {
                 }
 
                 serviceResult.Data = true;
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<List<OrderDto>> GetOrdersByQuery(Expression<Func<Order, bool>> expression) {
+            var serviceResult = new ServiceResult<List<OrderDto>>();
+            try {
+                var orders = _model.Orders.Where(expression).ToList();
+                serviceResult.Data = orders.Select(a => _mapper.GetMapDto<OrderDto, Order>(a)).ToList();
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<List<OrderDto>> GetResponsePendingOrders() {
+            var serviceResult = new ServiceResult<List<OrderDto>>();
+            try {
+                var orderDetails =
+                    _model.OrderDetails.Include(a => a.Order)
+                        .Include(a => a.TranslationOperation)
+                        .Where(
+                            a =>
+                                a.TranslationOperation.TranslationProgressStatusId == (int)TranslationProgressStatusEnum.Open);
+
+                serviceResult.Data = orderDetails.Select(a => _mapper.GetMapDto<OrderDto, Order>(a.Order)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
