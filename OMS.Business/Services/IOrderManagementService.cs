@@ -15,7 +15,10 @@ namespace OMS.Business.Services {
         ServiceResult<OrderDto> GetOrderById(int orderId);
         ServiceResult<OrderDto> UpdateOrder(OrderDto order);
         ServiceResult DeactivateOrder(int orderId);
-        ServiceResult<List<OrderDto>> GetOrdersByQuery(Expression<Func<Order,bool>> expression);
+        ServiceResult<List<OrderDto>> GetOrdersByQuery(Expression<Func<Order, bool>> expression);
         ServiceResult<List<OrderDto>> GetResponsePendingOrders();
+        ServiceResult AcceptOfferAsTranslator(int translatorId, int translationOperationId, decimal price);
+        ServiceResult AcceptOfferAsEditor(int editorId, int translationOperationId, decimal price);
+        ServiceResult AcceptOfferAsProofReader(int proofReaderId, int translationOperationId, decimal price);
     }
 }

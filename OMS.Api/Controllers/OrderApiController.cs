@@ -25,7 +25,7 @@ namespace OMS.Api.Controllers {
                 return Error(serviceResult);
             }
 
-            return OK(serviceResult.Data);
+            return OK(serviceResult);
         }
 
         [HttpGet, Route("getOrders")]

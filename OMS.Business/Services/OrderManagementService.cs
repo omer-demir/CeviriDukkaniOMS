@@ -292,6 +292,123 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
+        public ServiceResult AcceptOfferAsTranslator(int translatorId,int translationOperationId, decimal price) {
+            var serviceResult = new ServiceResult();
+            try {
+                var orderDetail =
+                    _model.OrderDetails.Include(a => a.Order)
+                        .Include(a => a.TranslationOperation)
+                        .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+
+                if (orderDetail==null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                var translationOperation = orderDetail.TranslationOperation;
+                var order = orderDetail.Order;
+
+                translationOperation.TranslatorId = translatorId;
+                translationOperation.TranslationProgressStatusId = (int) TranslationProgressStatusEnum.TranslatorStarted;
+                _model.Entry(translationOperation).State=EntityState.Modified;
+
+                orderDetail.AcceptedPrice = price;
+                _model.Entry(orderDetail).State=EntityState.Modified;
+
+                order.OrderStatusId = (int) OrderStatusEnum.InProcess;
+                _model.Entry(order).State = EntityState.Modified;
+
+                var result = _model.SaveChanges() > 0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = true;
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult AcceptOfferAsEditor(int editorId, int translationOperationId, decimal price) {
+            var serviceResult = new ServiceResult();
+            try {
+                var orderDetail =
+                    _model.OrderDetails.Include(a => a.Order)
+                        .Include(a => a.TranslationOperation)
+                        .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+
+                if (orderDetail == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                var translationOperation = orderDetail.TranslationOperation;
+                var order = orderDetail.Order;
+
+                translationOperation.EditorId = editorId;
+                translationOperation.TranslationProgressStatusId = (int)TranslationProgressStatusEnum.EditorStarted;
+                _model.Entry(translationOperation).State = EntityState.Modified;
+
+                orderDetail.EditorAcceptedPrice = price;
+                _model.Entry(orderDetail).State = EntityState.Modified;
+
+                var result = _model.SaveChanges() > 0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = true;
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult AcceptOfferAsProofReader(int proofReaderId, int translationOperationId, decimal price) {
+            var serviceResult = new ServiceResult();
+            try {
+                var orderDetail =
+                    _model.OrderDetails.Include(a => a.Order)
+                        .Include(a => a.TranslationOperation)
+                        .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+
+                if (orderDetail == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                var translationOperation = orderDetail.TranslationOperation;
+                var order = orderDetail.Order;
+
+                translationOperation.ProofReaderId = proofReaderId;
+                translationOperation.TranslationProgressStatusId = (int)TranslationProgressStatusEnum.ProofReaderStarted;
+                _model.Entry(translationOperation).State = EntityState.Modified;
+
+                orderDetail.ProofReaderAcceptedPrice = price;
+                _model.Entry(orderDetail).State = EntityState.Modified;
+
+                var result = _model.SaveChanges() > 0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = true;
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
         #endregion
 
         private decimal CalculateOrderPrice(CreateTranslationOrderRequestDto orderRequest, int terminologyId) {
