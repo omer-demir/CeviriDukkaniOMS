@@ -128,15 +128,15 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="Tangent.CeviriDukkani.Data, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDükkanıData.1.0.5\lib\Tangent.CeviriDukkani.Data.dll</HintPath>
+      <HintPath>..\packages\CeviriDükkanıData.1.0.9\lib\Tangent.CeviriDukkani.Data.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Domain, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDükkanıCommon.1.0.2.17\lib\Tangent.CeviriDukkani.Domain.dll</HintPath>
+      <HintPath>..\packages\CeviriDükkanıCommon.1.0.2.33\lib\Tangent.CeviriDukkani.Domain.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Event, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDukkaniEvent.1.0.4\lib\Tangent.CeviriDukkani.Event.dll</HintPath>
+      <HintPath>..\packages\CeviriDukkaniEvent.1.0.7\lib\Tangent.CeviriDukkani.Event.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Logging, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">

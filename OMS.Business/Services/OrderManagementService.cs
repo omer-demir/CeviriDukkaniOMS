@@ -149,18 +149,19 @@ namespace OMS.Business.Services {
                 var relatedTranslators = JsonConvert.DeserializeObject<List<UserDto>>(relatedTranslatorsResult.Data.ToString());
 
 
-                var sendMailEvent = new SendMailEvent {
-                    Id = Guid.NewGuid(),
-                    MailSender = MailSenderTypeEnum.System,
-                    CreatedBy = 1,
-                    Message = "Notify translators for new job",
-                    Subject = "New Document Ready to Work on!",
-                    To = relatedTranslators.Select(a => a.Email).ToList()
-                };
+                //TODO change this
+                //var sendMailEvent = new SendMailEvent {
+                //    Id = Guid.NewGuid(),
+                //    MailSender = MailSenderTypeEnum.System,
+                //    CreatedBy = 1,
+                //    Message = "Notify translators for new job",
+                //    Subject = "New Document Ready to Work on!",
+                //    To = relatedTranslators.Select(a => a.Email).ToList()
+                //};
 
-                _dispatcher.Dispatch(new List<EventMessage> {
-                    sendMailEvent.ToEventMessage()
-                });
+                //_dispatcher.Dispatch(new List<EventMessage> {
+                //    sendMailEvent.ToEventMessage()
+                //});
 
                 serviceResult.Data = order.OrderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
@@ -292,7 +293,7 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult AcceptOfferAsTranslator(int translatorId,int translationOperationId, decimal price) {
+        public ServiceResult AcceptOfferAsTranslator(int translatorId, int translationOperationId, decimal price) {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
@@ -300,7 +301,7 @@ namespace OMS.Business.Services {
                         .Include(a => a.TranslationOperation)
                         .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
 
-                if (orderDetail==null) {
+                if (orderDetail == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
 
@@ -308,13 +309,13 @@ namespace OMS.Business.Services {
                 var order = orderDetail.Order;
 
                 translationOperation.TranslatorId = translatorId;
-                translationOperation.TranslationProgressStatusId = (int) TranslationProgressStatusEnum.TranslatorStarted;
-                _model.Entry(translationOperation).State=EntityState.Modified;
+                translationOperation.TranslationProgressStatusId = (int)TranslationProgressStatusEnum.TranslatorStarted;
+                _model.Entry(translationOperation).State = EntityState.Modified;
 
                 orderDetail.AcceptedPrice = price;
-                _model.Entry(orderDetail).State=EntityState.Modified;
+                _model.Entry(orderDetail).State = EntityState.Modified;
 
-                order.OrderStatusId = (int) OrderStatusEnum.InProcess;
+                order.OrderStatusId = (int)OrderStatusEnum.InProcess;
                 _model.Entry(order).State = EntityState.Modified;
 
                 var result = _model.SaveChanges() > 0;
@@ -392,6 +393,37 @@ namespace OMS.Business.Services {
 
                 orderDetail.ProofReaderAcceptedPrice = price;
                 _model.Entry(orderDetail).State = EntityState.Modified;
+
+                var result = _model.SaveChanges() > 0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = true;
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult UpdateOrderStatus(int translationOperationId, int orderStatusId) {
+            var serviceResult = new ServiceResult();
+            try {
+                var orderDetail = _model.OrderDetails.FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+                if (orderDetail==null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                var order = _model.Orders.FirstOrDefault(a => a.Id == orderDetail.OrderId);
+                if (order == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+                order.OrderStatusId = orderStatusId;
+                _model.Entry(order).State =EntityState.Modified;
 
                 var result = _model.SaveChanges() > 0;
                 if (!result) {

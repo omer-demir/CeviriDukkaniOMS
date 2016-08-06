@@ -20,5 +20,6 @@ namespace OMS.Business.Services {
         ServiceResult AcceptOfferAsTranslator(int translatorId, int translationOperationId, decimal price);
         ServiceResult AcceptOfferAsEditor(int editorId, int translationOperationId, decimal price);
         ServiceResult AcceptOfferAsProofReader(int proofReaderId, int translationOperationId, decimal price);
+        ServiceResult UpdateOrderStatus(int translationOperationId, int orderStatusId);
     }
 }

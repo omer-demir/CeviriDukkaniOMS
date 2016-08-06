@@ -19,7 +19,8 @@ namespace OMS.Api {
             _consumer = new RabbitMqSubscription(connection, "Cev-Exchange", _logger);
             _consumer
                 .WithAppName("oms-projection")
-                .WithEvent<CreateOrderDetailEvent>(Handle);
+                .WithEvent<CreateOrderDetailEvent>(Handle)
+                .WithEvent<UpdateOrderStatusEvent>(Handle);
         }
 
         public void Start() {
@@ -36,5 +37,13 @@ namespace OMS.Api {
                 Console.WriteLine($"Error occured in {orderDetailEvent.GetType().Name}");
             }
         }
+
+        public void Handle(UpdateOrderStatusEvent updateOrderStatusEvent) {
+            var result = _orderManagementService.UpdateOrderStatus(updateOrderStatusEvent.TranslationOperationId,updateOrderStatusEvent.StatusId);
+            if (result.ServiceResultType != ServiceResultType.Success) {
+                Console.WriteLine($"Error occured in {updateOrderStatusEvent.GetType().Name}");
+            }
+        }
+
     }
 }
