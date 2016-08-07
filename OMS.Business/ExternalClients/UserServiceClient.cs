@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Tangent.CeviriDukkani.Domain.Common;
+using Tangent.CeviriDukkani.Domain.Dto.System;
 
 namespace OMS.Business.ExternalClients {
     public class UserServiceClient : IUserServiceClient {
@@ -19,9 +21,9 @@ namespace OMS.Business.ExternalClients {
 
         #region Implementation of IUserServiceClient
 
-        public ServiceResult GetTranslatorsAccordingToOrderTranslationQuality(int orderId) {
+        public ServiceResult<List<UserDto>> GetTranslatorsAccordingToOrderTranslationQuality(int orderId) {
             var response = _httpClient.GetAsync($"api/userapi/getTranslatorsAccordingToOrderTranslationQuality?orderId={orderId}").Result;
-            return response.Content.ReadAsAsync<ServiceResult>().Result;
+            return response.Content.ReadAsAsync<ServiceResult<List<UserDto>>>().Result;
         }
 
         #endregion

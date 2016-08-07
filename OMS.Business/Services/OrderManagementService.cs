@@ -74,7 +74,8 @@ namespace OMS.Business.Services {
                 var translationDocument = CreateTranslationDocumentForOrder(orderRequest);
                 newOrder.TranslationDocumentId = translationDocument.Id;
 
-                var orderPrice = CalculateOrderPrice(orderRequest, orderRequest.TerminologyId);
+                var campaingDiscountAmount = GettingCampaignItemFromCode(orderRequest);
+                var orderPrice = CalculateOrderPrice(orderRequest, orderRequest.TerminologyId, campaingDiscountAmount);
                 newOrder.CalculatedPrice = orderPrice;
                 newOrder.VatPrice = orderPrice * VatAmount;
 
@@ -87,6 +88,8 @@ namespace OMS.Business.Services {
                     throw new BusinessException(ExceptionCodes.UnableToSave);
                 }
 
+
+                UpdateCampaignItemAsUsed(orderRequest.CampaignItemCode);
 
                 //translation service call edilecek
                 var averageDocumentPartCount = _translationService.GetAverageDocumentPartCount(newOrder.Id);
@@ -146,7 +149,7 @@ namespace OMS.Business.Services {
                 }
 
                 var relatedTranslatorsResult = _userServiceClient.GetTranslatorsAccordingToOrderTranslationQuality(orderId);
-                var relatedTranslators = JsonConvert.DeserializeObject<List<UserDto>>(relatedTranslatorsResult.Data.ToString());
+                var relatedTranslators = relatedTranslatorsResult.Data;
 
 
                 //TODO change this
@@ -198,7 +201,22 @@ namespace OMS.Business.Services {
         public ServiceResult<OrderDto> GetOrderById(int orderId) {
             var serviceResult = new ServiceResult<OrderDto>();
             try {
-                var order = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderId);
+                var order = _model.Orders
+                    .Include(a => a.OrderDetails.Select(b=>b.TranslationOperation.Editor))
+                    .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.Translator))
+                    .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.ProofReader))
+                    .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.TranslationOperationStatus))
+                    .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.TranslationProgressStatus))
+                    .Include(a => a.OrderStatus)
+                    .Include(a => a.Customer.Company)
+                    .Include(a => a.Customer.MembershipType)
+                    .Include(a => a.CompanyTerminology)
+                    .Include(a => a.SourceLanguage)
+                    .Include(a => a.TargetLanguages.Select(b=>b.Language))
+                    .Include(a => a.Terminology)
+                    .Include(a => a.TranslationQuality)
+                    .Include(a => a.CampaignItem)
+                    .FirstOrDefault(a => a.Id == orderId);
                 if (order == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
@@ -414,7 +432,7 @@ namespace OMS.Business.Services {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail = _model.OrderDetails.FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
-                if (orderDetail==null) {
+                if (orderDetail == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
 
@@ -423,8 +441,102 @@ namespace OMS.Business.Services {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
                 order.OrderStatusId = orderStatusId;
-                _model.Entry(order).State =EntityState.Modified;
+                _model.Entry(order).State = EntityState.Modified;
 
+                var result = _model.SaveChanges() > 0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = true;
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<List<CampaignItemDto>> GetCampaigns() {
+            var serviceResult = new ServiceResult<List<CampaignItemDto>>();
+            try {
+                var campaigns = _model.CampaignItems.ToList();
+
+                serviceResult.Data = campaigns.Select(a=>_mapper.GetMapDto<CampaignItemDto,CampaignItem>(a)).ToList();
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<CampaignItemDto> GetCampaign(int campaingItemId) {
+            var serviceResult = new ServiceResult<CampaignItemDto>();
+            try {
+                var campaign = _model.CampaignItems.FirstOrDefault(a=>a.Id==campaingItemId);
+                if (campaign==null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                serviceResult.Data = _mapper.GetMapDto<CampaignItemDto, CampaignItem>(campaign);
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult<CampaignItemDto> UpdateCampaign(CampaignItemDto campaignItem) {
+            var serviceResult = new ServiceResult<CampaignItemDto>();
+            try {
+                var campaign = _model.CampaignItems.FirstOrDefault(a => a.Id == campaignItem.Id);
+                if (campaign == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                campaign.Code = campaignItem.Code;
+                campaign.DiscountRate = campaignItem.DiscountRate;
+                campaign.EndTime = campaignItem.EndTime;
+                campaign.StartTime = campaignItem.StartTime;
+                campaign.Used = campaignItem.Used;
+                campaign.Description = campaignItem.Description;
+
+                _model.Entry(campaign).State=EntityState.Modified;
+                var result = _model.SaveChanges() >0;
+                if (!result) {
+                    throw new BusinessException(ExceptionCodes.UnableToUpdate);
+                }
+
+                serviceResult.Data = _mapper.GetMapDto<CampaignItemDto, CampaignItem>(campaign);
+                serviceResult.ServiceResultType = ServiceResultType.Success;
+            } catch (Exception exc) {
+                _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
+                serviceResult.Exception = exc;
+                serviceResult.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return serviceResult;
+        }
+
+        public ServiceResult DeleteCampaign(int campaingItemId) {
+            var serviceResult = new ServiceResult();
+            try {
+                var campaign = _model.CampaignItems.FirstOrDefault(a => a.Id == campaingItemId);
+                if (campaign == null) {
+                    throw new BusinessException(ExceptionCodes.NoRelatedData);
+                }
+
+                campaign.Active = false;
+
+                _model.Entry(campaign).State = EntityState.Modified;
                 var result = _model.SaveChanges() > 0;
                 if (!result) {
                     throw new BusinessException(ExceptionCodes.UnableToUpdate);
@@ -443,7 +555,7 @@ namespace OMS.Business.Services {
 
         #endregion
 
-        private decimal CalculateOrderPrice(CreateTranslationOrderRequestDto orderRequest, int terminologyId) {
+        private decimal CalculateOrderPrice(CreateTranslationOrderRequestDto orderRequest, int terminologyId, decimal? campaingDiscountAmount = null) {
             var translationUnitPriceList =
                 _model.PriceLists.Where(
                     a =>
@@ -472,6 +584,11 @@ namespace OMS.Business.Services {
 
             var calculatedPrice = orderPrice * orderRequest.CharCountWithSpaces;
             calculatedPrice += calculatedPrice * terminologyRate.Rate;
+
+            if (campaingDiscountAmount.HasValue) {
+                calculatedPrice = calculatedPrice - calculatedPrice * campaingDiscountAmount.Value;
+            }
+
             return calculatedPrice;
 
         }
@@ -489,10 +606,28 @@ namespace OMS.Business.Services {
                 throw new BusinessException(ExceptionCodes.UnableToInsert);
             }
 
-            var translationDocument = JsonConvert.DeserializeObject<TranslationDocumentDto>(translationDocumentSaveResult.Data.ToString());
+            var translationDocument = translationDocumentSaveResult.Data;
 
-            //var translationDocument =  as TranslationDocumentDto;
             return translationDocument;
+        }
+
+        private decimal? GettingCampaignItemFromCode(CreateTranslationOrderRequestDto orderRequest) {
+            decimal? campaingDiscountAmount = null;
+
+            if (!string.IsNullOrEmpty(orderRequest.CampaignItemCode)) {
+                var campaignDiscount =
+                    _model.CampaignItems.FirstOrDefault(a => a.Code == orderRequest.CampaignItemCode && !a.Used && a.StartTime <= DateTime.Now && a.EndTime >= DateTime.Now);
+                campaingDiscountAmount = campaignDiscount?.DiscountRate ?? null;
+            }
+            return campaingDiscountAmount;
+        }
+
+        private void UpdateCampaignItemAsUsed(string campaignItemCode) {
+            var campaignItem = _model.CampaignItems.FirstOrDefault(a => a.Code == campaignItemCode);
+            campaignItem.Used = true;
+
+            _model.Entry(campaignItem).State = EntityState.Modified;
+            _model.SaveChanges();
         }
     }
 }

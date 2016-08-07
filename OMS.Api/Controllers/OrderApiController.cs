@@ -97,5 +97,42 @@ namespace OMS.Api.Controllers {
 
             return OK(serviceResult);
         }
+
+        [HttpGet, Route("getCampaigns")]
+        public HttpResponseMessage GetCampaigns() {
+            var serviceResult = _orderManagementService.GetCampaigns();
+            if (serviceResult.ServiceResultType != ServiceResultType.Success) {
+                return Error(serviceResult);
+            }
+
+            return OK(serviceResult);
+        }
+        [HttpGet, Route("getCampaign")]
+        public HttpResponseMessage GetCampaign([FromUri] int campaingItemId) {
+            var serviceResult = _orderManagementService.GetCampaign(campaingItemId);
+            if (serviceResult.ServiceResultType != ServiceResultType.Success) {
+                return Error(serviceResult);
+            }
+
+            return OK(serviceResult);
+        }
+        [HttpPost, Route("updateCampaign")]
+        public HttpResponseMessage UpdateCampaign([FromBody]CampaignItemDto request) {
+            var serviceResult = _orderManagementService.UpdateCampaign(request);
+            if (serviceResult.ServiceResultType != ServiceResultType.Success) {
+                return Error(serviceResult);
+            }
+
+            return OK(serviceResult);
+        }
+        [HttpGet, Route("deleteCampaign")]
+        public HttpResponseMessage DeleteCampaign([FromUri] int campaignId) {
+            var serviceResult = _orderManagementService.DeleteCampaign(campaignId);
+            if (serviceResult.ServiceResultType != ServiceResultType.Success) {
+                return Error(serviceResult);
+            }
+
+            return OK(serviceResult);
+        }
     }
 }

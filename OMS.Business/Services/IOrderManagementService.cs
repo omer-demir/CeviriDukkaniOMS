@@ -21,5 +21,10 @@ namespace OMS.Business.Services {
         ServiceResult AcceptOfferAsEditor(int editorId, int translationOperationId, decimal price);
         ServiceResult AcceptOfferAsProofReader(int proofReaderId, int translationOperationId, decimal price);
         ServiceResult UpdateOrderStatus(int translationOperationId, int orderStatusId);
+        ServiceResult<List<CampaignItemDto>> GetCampaigns();
+        ServiceResult<CampaignItemDto> GetCampaign(int campaingItemId);
+        ServiceResult<CampaignItemDto> UpdateCampaign(CampaignItemDto campaignItem);
+        ServiceResult DeleteCampaign(int campaingItemId);
+
     }
 }
