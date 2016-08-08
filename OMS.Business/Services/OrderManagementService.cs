@@ -74,10 +74,7 @@ namespace OMS.Business.Services {
                 var translationDocument = CreateTranslationDocumentForOrder(orderRequest);
                 newOrder.TranslationDocumentId = translationDocument.Id;
 
-                var campaingDiscountAmount = GettingCampaignItemFromCode(orderRequest);
-                var orderPrice = CalculateOrderPrice(orderRequest, orderRequest.TerminologyId, campaingDiscountAmount);
-                newOrder.CalculatedPrice = orderPrice;
-                newOrder.VatPrice = orderPrice * VatAmount;
+                SetOrderPrices(orderRequest, newOrder);
 
                 _logger.Info("Order creating...");
                 _model.Orders.Add(newOrder);
@@ -628,6 +625,13 @@ namespace OMS.Business.Services {
 
             _model.Entry(campaignItem).State = EntityState.Modified;
             _model.SaveChanges();
+        }
+
+        private void SetOrderPrices(CreateTranslationOrderRequestDto orderRequest, Order newOrder) {
+            var campaingDiscountAmount = GettingCampaignItemFromCode(orderRequest);
+            var orderPrice = CalculateOrderPrice(orderRequest, orderRequest.TerminologyId, campaingDiscountAmount);
+            newOrder.CalculatedPrice = orderPrice;
+            newOrder.VatPrice = orderPrice * VatAmount;
         }
     }
 }
