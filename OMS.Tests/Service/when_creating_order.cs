@@ -43,7 +43,7 @@ namespace OMS.Tests.Service {
             var documentClientService = new Mock<IDocumentServiceClient>();
             documentClientService
                 .Setup(a => a.CreateDocument(It.IsAny<TranslationDocumentDto>()))
-                .Returns(new ServiceResult {
+                .Returns(new ServiceResult<TranslationDocumentDto> {
                     ServiceResultType = ServiceResultType.Success,
                     Data = document
                 });

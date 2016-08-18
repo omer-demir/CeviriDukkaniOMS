@@ -26,6 +26,16 @@ namespace OMS.Business.ExternalClients {
             return response.Content.ReadAsAsync<ServiceResult<List<UserDto>>>().Result;
         }
 
+        public ServiceResult<List<UserDto>> GetEditorsAccordingToOrderTranslationQuality(int orderId) {
+            var response = _httpClient.GetAsync($"api/userapi/getEditorAccordingToOrderTranslationQuality?orderId={orderId}").Result;
+            return response.Content.ReadAsAsync<ServiceResult<List<UserDto>>>().Result;
+        }
+
+        public ServiceResult<List<UserDto>> GetProofReadersAccordingToOrderTranslationQuality(int orderId) {
+            var response = _httpClient.GetAsync($"api/userapi/getProofReadersAccordingToOrderTranslationQuality?orderId={orderId}").Result;
+            return response.Content.ReadAsAsync<ServiceResult<List<UserDto>>>().Result;
+        }
+
         #endregion
     }
 }
