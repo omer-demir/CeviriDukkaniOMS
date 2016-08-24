@@ -17,14 +17,15 @@ namespace OMS.Business.Services {
         ServiceResult DeactivateOrder(int orderId);
         ServiceResult<List<OrderDto>> GetOrdersByQuery(Expression<Func<Order, bool>> expression);
         ServiceResult<List<OrderDto>> GetResponsePendingOrders();
-        ServiceResult AcceptOfferAsTranslator(int translatorId, int translationOperationId, decimal price);
-        ServiceResult AcceptOfferAsEditor(int editorId, int translationOperationId, decimal price);
-        ServiceResult AcceptOfferAsProofReader(int proofReaderId, int translationOperationId, decimal price);
+        ServiceResult AcceptOfferAsTranslator(int translatorId, int orderDetailId, decimal? price);
+        ServiceResult AcceptOfferAsEditor(int editorId, int orderDetailId, decimal? price);
+        ServiceResult AcceptOfferAsProofReader(int proofReaderId, int orderDetailId, decimal? price);
         ServiceResult UpdateOrderStatus(int translationOperationId, int orderStatusId);
         ServiceResult<List<CampaignItemDto>> GetCampaigns();
         ServiceResult<CampaignItemDto> GetCampaign(int campaingItemId);
         ServiceResult<CampaignItemDto> UpdateCampaign(CampaignItemDto campaignItem);
         ServiceResult DeleteCampaign(int campaingItemId);
+        ServiceResult<List<OrderDetailDto>> GetOrderDetailsByOrderId(int orderId);
 
     }
 }

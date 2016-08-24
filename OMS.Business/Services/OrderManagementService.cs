@@ -168,6 +168,11 @@ namespace OMS.Business.Services {
                 var relatedTranslatorsResult = _userServiceClient.GetTranslatorsAccordingToOrderTranslationQuality(orderId);
                 var relatedTranslators = relatedTranslatorsResult.Data;
 
+                var relatedEditorsResult = _userServiceClient.GetEditorsAccordingToOrderTranslationQuality(orderId);
+                var relatedEditors = relatedEditorsResult.Data;
+
+                var relatedProofReadersResult = _userServiceClient.GetProofReadersAccordingToOrderTranslationQuality(orderId);
+                var relatedProofReaders = relatedProofReadersResult.Data;
 
                 //TODO change this
                 //var sendMailEvent = new SendMailEvent {
@@ -328,7 +333,7 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult AcceptOfferAsTranslator(int translatorId, int translationOperationId, decimal price) {
+        public ServiceResult AcceptOfferAsTranslator(int translatorId, int orderDetailId, decimal? price) {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
@@ -342,6 +347,16 @@ namespace OMS.Business.Services {
 
                 var translationOperation = orderDetail.TranslationOperation;
                 var order = orderDetail.Order;
+
+                if (translationOperation.TranslationProgressStatusId != (int)TranslationProgressStatusEnum.Open) {
+                    _logger.Error($"TranslationOperation {translationOperation.Id} is taken or not ready to be translated");
+                    throw new Exception("Translation operation started by another user.");
+                }
+
+                if (translationOperation.TranslatorId != translatorId) {
+                    _logger.Error($"TranslationOperation {translationOperation.Id} is taken by another user {translationOperation.TranslatorId} and your id {translatorId}");
+                    throw new Exception("Translation operation started by another user.");
+                }
 
                 translationOperation.TranslatorId = translatorId;
                 translationOperation.TranslationProgressStatusId = (int)TranslationProgressStatusEnum.TranslatorStarted;
@@ -369,7 +384,7 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult AcceptOfferAsEditor(int editorId, int translationOperationId, decimal price) {
+        public ServiceResult AcceptOfferAsEditor(int editorId, int orderDetailId, decimal? price) {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
@@ -407,7 +422,7 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult AcceptOfferAsProofReader(int proofReaderId, int translationOperationId, decimal price) {
+        public ServiceResult AcceptOfferAsProofReader(int proofReaderId, int orderDetailId, decimal? price) {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
@@ -570,6 +585,28 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
+        public ServiceResult<List<OrderDetailDto>> GetOrderDetailsByOrderId(int orderId) {
+            var result = new ServiceResult<List<OrderDetailDto>> { ServiceResultType = ServiceResultType.NotKnown };
+            try {
+                var orderDetails = _model.OrderDetails
+                    .Include(a => a.TranslationOperation.TranslationDocumentPart)
+                    .Include(a => a.Order.SourceLanguage)
+                    .Include(a => a.Order.TargetLanguages)
+                    .Include(a => a.Order.Terminology)
+                    .Include(a => a.Order.TranslationQuality)
+                    .Where(a => a.OrderId == orderId)
+                    .ToList();
+
+                result.Data = orderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a)).ToList();
+            } catch (Exception exc) {
+                result.Exception = exc;
+                result.Message = exc.Message;
+                result.ServiceResultType = ServiceResultType.Fail;
+            }
+
+            return result;
+        }
+
         #endregion
 
         private decimal CalculateDocumentPartPrice(CreateTranslationOrderRequestDto orderRequest, decimal? campaingDiscountAmount = null) {
@@ -611,25 +648,10 @@ namespace OMS.Business.Services {
         }
 
         private decimal CalculateOrderPrice(CreateTranslationOrderRequestDto orderRequest, decimal? campaingDiscountAmount = null) {
-            var translationUnitPriceList =
-                _model.PriceLists.Where(
-                    a =>
-                        a.SourceLanguageId == orderRequest.SourceLanguageId &&
-                        orderRequest.TargetLanguagesIds.Any(b => b == a.TargetLanguageId));
-
             var orderPrice = 0.0M;
 
-            if (orderRequest.CharCountWithSpaces < 100) {
-                orderPrice = translationUnitPriceList.Select(a => a.Char_0_100).Sum();
-            } else if (orderRequest.CharCountWithSpaces < 150) {
-                orderPrice = translationUnitPriceList.Select(a => a.Char_100_150).Sum();
-            } else if (orderRequest.CharCountWithSpaces < 200) {
-                orderPrice = translationUnitPriceList.Select(a => a.Char_150_200).Sum();
-            } else if (orderRequest.CharCountWithSpaces < 500) {
-                orderPrice = translationUnitPriceList.Select(a => a.Char_200_500).Sum();
-            } else {
-                orderPrice = translationUnitPriceList.Select(a => a.Char_500_More).Sum();
-            }
+            decimal? companyFixedPrice = GetCompanyFixedPrice();
+            orderPrice = companyFixedPrice ?? GetUnitPriceSum(orderRequest);
 
             var terminologyRate = _model.TerminologyPriceRate.FirstOrDefault(a => a.TerminologyId == orderRequest.TerminologyId);
             if (terminologyRate == null) {
@@ -646,6 +668,41 @@ namespace OMS.Business.Services {
 
             return calculatedPrice;
 
+        }
+
+        private decimal GetUnitPriceSum(CreateTranslationOrderRequestDto orderRequest) {
+            var unitPriceSum = 0.0M;
+            var translationUnitPriceList =
+                _model.PriceLists.Where(
+                    a =>
+                        a.SourceLanguageId == orderRequest.SourceLanguageId &&
+                        orderRequest.TargetLanguagesIds.Any(b => b == a.TargetLanguageId));
+
+            if (orderRequest.CharCountWithSpaces < 100) {
+                unitPriceSum = translationUnitPriceList.Select(a => a.Char_0_100).Sum();
+            } else if (orderRequest.CharCountWithSpaces < 150) {
+                unitPriceSum = translationUnitPriceList.Select(a => a.Char_100_150).Sum();
+            } else if (orderRequest.CharCountWithSpaces < 200) {
+                unitPriceSum = translationUnitPriceList.Select(a => a.Char_150_200).Sum();
+            } else if (orderRequest.CharCountWithSpaces < 500) {
+                unitPriceSum = translationUnitPriceList.Select(a => a.Char_200_500).Sum();
+            } else {
+                unitPriceSum = translationUnitPriceList.Select(a => a.Char_500_More).Sum();
+            }
+            return unitPriceSum;
+        }
+
+        private decimal? GetCompanyFixedPrice() {
+            decimal? price = null;
+            var companyPriceOffer = (from companyPrice in _model.CompanyPriceOffers
+                                     join company in _model.Companies on companyPrice.CompanyId equals company.Id
+                                     join customer in _model.Customers on company.Id equals customer.CompanyId
+                                     where companyPrice.Active && company.Active && customer.Active
+                                     select companyPrice).FirstOrDefault();
+            if (companyPriceOffer != null) {
+                price = companyPriceOffer.PricePerCharacter;
+            }
+            return price;
         }
 
         private TranslationDocumentDto CreateTranslationDocumentForOrder(CreateTranslationOrderRequestDto orderRequest) {
@@ -691,7 +748,7 @@ namespace OMS.Business.Services {
             newOrder.CalculatedPrice = orderPrice;
             newOrder.VatPrice = orderPrice * VatAmount;
         }
-    
+
         private void CalculatePotentialDeliveryDate(Order newOrder, CreateTranslationOrderRequestDto orderRequest) {
             decimal perDay = 8000;
             var characterPerDay = _model.Configurations.FirstOrDefault(a => a.Key == "CharPerDay");

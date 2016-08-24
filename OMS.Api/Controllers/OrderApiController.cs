@@ -8,6 +8,7 @@ using Tangent.CeviriDukkani.Domain.Dto.Request;
 using Tangent.CeviriDukkani.WebCore.BaseControllers;
 using Tangent.CeviriDukkani.Domain.Dto.Sale;
 using Tangent.CeviriDukkani.Domain.Dto.Enums;
+using System.Exception;
 
 namespace OMS.Api.Controllers {
     [RoutePrefix("api/orderapi")]
@@ -88,6 +89,10 @@ namespace OMS.Api.Controllers {
             return OK(serviceResult);
         }
 
+        /// <summary>
+        /// Gets the response pending orders.
+        /// </summary>
+        /// <returns></returns>
         [HttpGet, Route("getResponsePendingOrders")]
         public HttpResponseMessage GetResponsePendingOrders() {
             var serviceResult = _orderManagementService.GetResponsePendingOrders();
@@ -107,6 +112,7 @@ namespace OMS.Api.Controllers {
 
             return OK(serviceResult);
         }
+
         [HttpGet, Route("getCampaign")]
         public HttpResponseMessage GetCampaign([FromUri] int campaingItemId) {
             var serviceResult = _orderManagementService.GetCampaign(campaingItemId);
@@ -116,6 +122,12 @@ namespace OMS.Api.Controllers {
 
             return OK(serviceResult);
         }
+
+        /// <summary>
+        /// Updates the campaign.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
         [HttpPost, Route("updateCampaign")]
         public HttpResponseMessage UpdateCampaign([FromBody]CampaignItemDto request) {
             var serviceResult = _orderManagementService.UpdateCampaign(request);
@@ -125,6 +137,12 @@ namespace OMS.Api.Controllers {
 
             return OK(serviceResult);
         }
+
+        /// <summary>
+        /// Deletes the campaign.
+        /// </summary>
+        /// <param name="campaignId">The campaign identifier.</param>
+        /// <returns></returns>
         [HttpGet, Route("deleteCampaign")]
         public HttpResponseMessage DeleteCampaign([FromUri] int campaignId) {
             var serviceResult = _orderManagementService.DeleteCampaign(campaignId);
@@ -133,6 +151,42 @@ namespace OMS.Api.Controllers {
             }
 
             return OK(serviceResult);
+        }
+
+        [HttpGet, Route("getOrderDetailsByOrderId")]
+        public HttpResponseMessage GetOrderDetailByOrderId([FromUri]int orderId) {
+            var serviceResult = _orderManagementService.GetOrderDetailsByOrderId(orderId);
+            if (serviceResult.ServiceResultType != ServiceResultType.Success) {
+                return Error(serviceResult);
+            }
+
+            return OK(serviceResult);
+        }
+
+        [HttpPost, Route("acceptOffer")]
+        public HttpResponseMessage AcceptOffer([FromBody]AcceptOfferRequestDto request) {
+            ServiceResult serviceResult = new ServiceResult();
+            switch (request.UserRoleType) {
+                case UserRoleTypeEnum.Translator:
+                case UserRoleTypeEnum.FreelanceTranslator:
+                    serviceResult = _orderManagementService.AcceptOfferAsTranslator(request.BidderId, request.OrderDetailId,
+                        request.Price);
+                    break;
+                case UserRoleTypeEnum.Editor:
+                    serviceResult = _orderManagementService.AcceptOfferAsEditor(request.BidderId, request.OrderDetailId,
+                        request.Price);
+                    break;
+                case UserRoleTypeEnum.ProofReader:
+                    serviceResult = _orderManagementService.AcceptOfferAsProofReader(request.BidderId, request.OrderDetailId,
+                        request.Price);
+                    break;
+                default:
+                    serviceResult.ServiceResultType = ServiceResultType.Fail;
+                    serviceResult.Exception = new Exception("Undefined user role");
+                    break;
+            }
+
+            return serviceResult.ServiceResultType != ServiceResultType.Success ? Error(serviceResult) : OK(serviceResult);
         }
     }
 }
