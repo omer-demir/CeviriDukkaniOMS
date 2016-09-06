@@ -339,7 +339,7 @@ namespace OMS.Business.Services {
                 var orderDetail =
                     _model.OrderDetails.Include(a => a.Order)
                         .Include(a => a.TranslationOperation)
-                        .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+                        .FirstOrDefault(a => a.TranslationOperation.TranslatorId == translatorId && a.Id == orderDetailId);
 
                 if (orderDetail == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
@@ -390,7 +390,7 @@ namespace OMS.Business.Services {
                 var orderDetail =
                     _model.OrderDetails.Include(a => a.Order)
                         .Include(a => a.TranslationOperation)
-                        .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+                        .FirstOrDefault(a => a.TranslationOperation.EditorId == editorId && a.Id == orderDetailId);
 
                 if (orderDetail == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
@@ -428,7 +428,7 @@ namespace OMS.Business.Services {
                 var orderDetail =
                     _model.OrderDetails.Include(a => a.Order)
                         .Include(a => a.TranslationOperation)
-                        .FirstOrDefault(a => a.TranslationOperationId == translationOperationId);
+                        .FirstOrDefault(a => a.TranslationOperation.ProofReaderId == proofReaderId && a.Id == orderDetailId);
 
                 if (orderDetail == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);

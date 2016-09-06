@@ -93,7 +93,7 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="Tangent.CeviriDukkani.Data, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\CeviriDükkanıData.1.0.13\lib\Tangent.CeviriDukkani.Data.dll</HintPath>
+      <HintPath>..\packages\CeviriDükkanıData.1.0.14\lib\Tangent.CeviriDukkani.Data.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Tangent.CeviriDukkani.Domain, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">

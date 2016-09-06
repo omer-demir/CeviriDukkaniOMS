@@ -8,7 +8,6 @@ using Tangent.CeviriDukkani.Domain.Dto.Request;
 using Tangent.CeviriDukkani.WebCore.BaseControllers;
 using Tangent.CeviriDukkani.Domain.Dto.Sale;
 using Tangent.CeviriDukkani.Domain.Dto.Enums;
-using System.Exception;
 
 namespace OMS.Api.Controllers {
     [RoutePrefix("api/orderapi")]
