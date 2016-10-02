@@ -52,7 +52,7 @@ namespace OMS.Tests.Service {
             mockModel
                 .Setup(a => a.PriceLists.Where(It.IsAny<Expression<Func<PriceList, bool>>>()))
                 .Returns(priceList.AsQueryable());
-            mockModel.Setup(a => a.Orders.Add(It.IsAny<Order>())).Returns(new Order {
+            mockModel.Setup(a => a.TranslatingOrders.Add(It.IsAny<TranslatingOrder>())).Returns(new TranslatingOrder {
                 
             });
 

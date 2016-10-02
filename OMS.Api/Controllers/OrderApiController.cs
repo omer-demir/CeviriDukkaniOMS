@@ -58,7 +58,7 @@ namespace OMS.Api.Controllers {
         }
 
         [HttpPost, Route("updateTranslationOrder")]
-        public HttpResponseMessage UpdateTranslationOrder([FromBody] OrderDto order) {
+        public HttpResponseMessage UpdateTranslationOrder([FromBody] TranslatingOrderDto order) {
             var serviceResult = _orderManagementService.UpdateOrder(order);
             if (serviceResult.ServiceResultType != ServiceResultType.Success) {
                 return Error(serviceResult);

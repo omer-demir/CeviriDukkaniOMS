@@ -56,12 +56,12 @@ namespace OMS.Business.Services {
 
         #region Implementation of IOrderService
 
-        public ServiceResult<OrderDto> CreateOrder(CreateTranslationOrderRequestDto orderRequest) {
-            var serviceResult = new ServiceResult<OrderDto>();
+        public ServiceResult<TranslatingOrderDto> CreateOrder(CreateTranslationOrderRequestDto orderRequest) {
+            var serviceResult = new ServiceResult<TranslatingOrderDto>();
             try {
                 _logger.Info($"New order creation request obtained {DateTime.Now.ToString("d")}");
 
-                var newOrder = new Order {
+                var newOrder = new TranslatingOrder() {
                     SourceLanguageId = orderRequest.SourceLanguageId,
                     TerminologyId = orderRequest.TerminologyId,
                     CompanyTerminologyId = orderRequest.CompanyTerminologyId,
@@ -79,7 +79,7 @@ namespace OMS.Business.Services {
                 SetOrderPrices(orderRequest, newOrder);
 
                 _logger.Info("Order creating...");
-                _model.Orders.Add(newOrder);
+                _model.TranslatingOrders.Add(newOrder);
 
                 var saveResult = _model.SaveChanges() > 0;
                 if (!saveResult) {
@@ -114,7 +114,7 @@ namespace OMS.Business.Services {
                 });
 
                 serviceResult.ServiceResultType = ServiceResultType.Success;
-                serviceResult.Data = _mapper.GetMapDto<OrderDto, Order>(newOrder);
+                serviceResult.Data = _mapper.GetMapDto<TranslatingOrderDto, TranslatingOrder>(newOrder);
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
 
@@ -128,7 +128,7 @@ namespace OMS.Business.Services {
         public ServiceResult<List<OrderDetailDto>> CreateOrderDetails(List<TranslationOperationDto> translationOperations, int orderId) {
             var serviceResult = new ServiceResult<List<OrderDetailDto>>();
             try {
-                var order = _model.Orders.FirstOrDefault(a => a.Id == orderId);
+                var order = _model.TranslatingOrders.FirstOrDefault(a => a.Id == orderId);
                 if (order == null) {
                     serviceResult.Message = $"There is no related order with id {orderId}";
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
@@ -150,7 +150,7 @@ namespace OMS.Business.Services {
                         EditorOfferedPrice = calculatedPrice,
                         ProofReaderAveragePrice = calculatedPrice,
                         ProofReaderOfferedPrice = calculatedPrice,
-                        OrderId = orderId,
+                        TranslatingOrderId = orderId,
                         CreatedBy = 1,
                         TranslationOperationId = a.Id,
                         CreatedAt = DateTime.Now
@@ -199,17 +199,17 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult<List<OrderDto>> GetOrders() {
-            var serviceResult = new ServiceResult<List<OrderDto>>();
+        public ServiceResult<List<TranslatingOrderDto>> GetOrders() {
+            var serviceResult = new ServiceResult<List<TranslatingOrderDto>>();
             try {
-                var orderList = _model.Orders
+                var orderList = _model.TranslatingOrders
                     .Include(a => a.OrderDetails)
                     .Include(a => a.SourceLanguage)
                     .Include(a => a.Customer)
                     .Include(a => a.TranslationQuality)
                     .Include(a => a.Terminology)
                     .Include(a => a.OrderStatus).ToList();
-                serviceResult.Data = orderList.Select(a => _mapper.GetMapDto<OrderDto, Order>(a)).ToList();
+                serviceResult.Data = orderList.Select(a => _mapper.GetMapDto<TranslatingOrderDto, TranslatingOrder>(a)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
@@ -220,10 +220,10 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult<OrderDto> GetOrderById(int orderId) {
-            var serviceResult = new ServiceResult<OrderDto>();
+        public ServiceResult<TranslatingOrderDto> GetOrderById(int orderId) {
+            var serviceResult = new ServiceResult<TranslatingOrderDto>();
             try {
-                var order = _model.Orders
+                var order = _model.TranslatingOrders
                     .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.Editor))
                     .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.Translator))
                     .Include(a => a.OrderDetails.Select(b => b.TranslationOperation.ProofReader))
@@ -242,7 +242,7 @@ namespace OMS.Business.Services {
                 if (order == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
-                serviceResult.Data = _mapper.GetMapDto<OrderDto, Order>(order);
+                serviceResult.Data = _mapper.GetMapDto<TranslatingOrderDto, TranslatingOrder>(order);
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
@@ -253,14 +253,14 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult<OrderDto> UpdateOrder(OrderDto orderDto) {
-            var serviceResult = new ServiceResult<OrderDto>();
+        public ServiceResult<TranslatingOrderDto> UpdateOrder(TranslatingOrderDto orderDto) {
+            var serviceResult = new ServiceResult<TranslatingOrderDto>();
             try {
-                var order = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderDto.Id);
+                var order = _model.TranslatingOrders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderDto.Id);
                 if (order == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
-                serviceResult.Data = _mapper.GetMapDto<OrderDto, Order>(order);
+                serviceResult.Data = _mapper.GetMapDto<TranslatingOrderDto, TranslatingOrder>(order);
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
@@ -274,7 +274,7 @@ namespace OMS.Business.Services {
         public ServiceResult DeactivateOrder(int orderId) {
             var serviceResult = new ServiceResult(ServiceResultType.NotKnown);
             try {
-                var order = _model.Orders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderId);
+                var order = _model.TranslatingOrders.Include(a => a.OrderDetails).Include(a => a.OrderStatus).FirstOrDefault(a => a.Id == orderId);
                 if (order == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
@@ -297,11 +297,11 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult<List<OrderDto>> GetOrdersByQuery(Expression<Func<Order, bool>> expression) {
-            var serviceResult = new ServiceResult<List<OrderDto>>();
+        public ServiceResult<List<TranslatingOrderDto>> GetOrdersByQuery(Expression<Func<TranslatingOrder, bool>> expression) {
+            var serviceResult = new ServiceResult<List<TranslatingOrderDto>>();
             try {
-                var orders = _model.Orders.Where(expression).ToList();
-                serviceResult.Data = orders.Select(a => _mapper.GetMapDto<OrderDto, Order>(a)).ToList();
+                var orders = _model.TranslatingOrders.Where(expression).ToList();
+                serviceResult.Data = orders.Select(a => _mapper.GetMapDto<TranslatingOrderDto,TranslatingOrder>(a)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
@@ -312,17 +312,17 @@ namespace OMS.Business.Services {
             return serviceResult;
         }
 
-        public ServiceResult<List<OrderDto>> GetResponsePendingOrders() {
-            var serviceResult = new ServiceResult<List<OrderDto>>();
+        public ServiceResult<List<TranslatingOrderDto>> GetResponsePendingOrders() {
+            var serviceResult = new ServiceResult<List<TranslatingOrderDto>>();
             try {
                 var orderDetails =
-                    _model.OrderDetails.Include(a => a.Order)
+                    _model.OrderDetails.Include(a => a.TranslatingOrder)
                         .Include(a => a.TranslationOperation)
                         .Where(
                             a =>
                                 a.TranslationOperation.TranslationProgressStatusId == (int)TranslationProgressStatusEnum.Open);
 
-                serviceResult.Data = orderDetails.Select(a => _mapper.GetMapDto<OrderDto, Order>(a.Order)).ToList();
+                serviceResult.Data = orderDetails.Select(a => _mapper.GetMapDto<TranslatingOrderDto, TranslatingOrder>(a.TranslatingOrder)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
@@ -337,7 +337,7 @@ namespace OMS.Business.Services {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
-                    _model.OrderDetails.Include(a => a.Order)
+                    _model.OrderDetails.Include(a => a.TranslatingOrder)
                         .Include(a => a.TranslationOperation)
                         .FirstOrDefault(a => a.TranslationOperation.TranslatorId == translatorId && a.Id == orderDetailId);
 
@@ -346,7 +346,7 @@ namespace OMS.Business.Services {
                 }
 
                 var translationOperation = orderDetail.TranslationOperation;
-                var order = orderDetail.Order;
+                var order = orderDetail.TranslatingOrder;
 
                 if (translationOperation.TranslationProgressStatusId != (int)TranslationProgressStatusEnum.Open) {
                     _logger.Error($"TranslationOperation {translationOperation.Id} is taken or not ready to be translated");
@@ -388,7 +388,7 @@ namespace OMS.Business.Services {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
-                    _model.OrderDetails.Include(a => a.Order)
+                    _model.OrderDetails.Include(a => a.TranslatingOrder)
                         .Include(a => a.TranslationOperation)
                         .FirstOrDefault(a => a.TranslationOperation.EditorId == editorId && a.Id == orderDetailId);
 
@@ -397,7 +397,7 @@ namespace OMS.Business.Services {
                 }
 
                 var translationOperation = orderDetail.TranslationOperation;
-                var order = orderDetail.Order;
+                var order = orderDetail.TranslatingOrder;
 
                 translationOperation.EditorId = editorId;
                 translationOperation.TranslationProgressStatusId = (int)TranslationProgressStatusEnum.EditorStarted;
@@ -426,7 +426,7 @@ namespace OMS.Business.Services {
             var serviceResult = new ServiceResult();
             try {
                 var orderDetail =
-                    _model.OrderDetails.Include(a => a.Order)
+                    _model.OrderDetails.Include(a => a.TranslatingOrder)
                         .Include(a => a.TranslationOperation)
                         .FirstOrDefault(a => a.TranslationOperation.ProofReaderId == proofReaderId && a.Id == orderDetailId);
 
@@ -435,7 +435,7 @@ namespace OMS.Business.Services {
                 }
 
                 var translationOperation = orderDetail.TranslationOperation;
-                var order = orderDetail.Order;
+                var order = orderDetail.TranslatingOrder;
 
                 translationOperation.ProofReaderId = proofReaderId;
                 translationOperation.TranslationProgressStatusId = (int)TranslationProgressStatusEnum.ProofReaderStarted;
@@ -468,7 +468,7 @@ namespace OMS.Business.Services {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
 
-                var order = _model.Orders.FirstOrDefault(a => a.Id == orderDetail.OrderId);
+                var order = _model.TranslatingOrders.FirstOrDefault(a => a.Id == orderDetail.TranslatingOrderId);
                 if (order == null) {
                     throw new BusinessException(ExceptionCodes.NoRelatedData);
                 }
@@ -590,11 +590,11 @@ namespace OMS.Business.Services {
             try {
                 var orderDetails = _model.OrderDetails
                     .Include(a => a.TranslationOperation.TranslationDocumentPart)
-                    .Include(a => a.Order.SourceLanguage)
-                    .Include(a => a.Order.TargetLanguages)
-                    .Include(a => a.Order.Terminology)
-                    .Include(a => a.Order.TranslationQuality)
-                    .Where(a => a.OrderId == orderId)
+                    .Include(a => a.TranslatingOrder.SourceLanguage)
+                    .Include(a => a.TranslatingOrder.TargetLanguages)
+                    .Include(a => a.TranslatingOrder.Terminology)
+                    .Include(a => a.TranslatingOrder.TranslationQuality)
+                    .Where(a => a.TranslatingOrderId == orderId)
                     .ToList();
 
                 result.Data = orderDetails.Select(a => _mapper.GetMapDto<OrderDetailDto, OrderDetail>(a)).ToList();
@@ -700,7 +700,12 @@ namespace OMS.Business.Services {
                                      where companyPrice.Active && company.Active && customer.Active
                                      select companyPrice).FirstOrDefault();
             if (companyPriceOffer != null) {
-                price = companyPriceOffer.PricePerCharacter;
+                if (companyPriceOffer.IsApplicableForCalculation) {
+                    //TODO be careful about calculation
+                    price = companyPriceOffer.Price;
+                }
+
+                
             }
             return price;
         }
@@ -742,14 +747,14 @@ namespace OMS.Business.Services {
             _model.SaveChanges();
         }
 
-        private void SetOrderPrices(CreateTranslationOrderRequestDto orderRequest, Order newOrder) {
+        private void SetOrderPrices(CreateTranslationOrderRequestDto orderRequest, TranslatingOrder newOrder) {
             var campaingDiscountAmount = GettingCampaignItemFromCode(orderRequest);
             var orderPrice = CalculateOrderPrice(orderRequest, campaingDiscountAmount);
             newOrder.CalculatedPrice = orderPrice;
             newOrder.VatPrice = orderPrice * VatAmount;
         }
 
-        private void CalculatePotentialDeliveryDate(Order newOrder, CreateTranslationOrderRequestDto orderRequest) {
+        private void CalculatePotentialDeliveryDate(TranslatingOrder newOrder, CreateTranslationOrderRequestDto orderRequest) {
             decimal perDay = 8000;
             var characterPerDay = _model.Configurations.FirstOrDefault(a => a.Key == "CharPerDay");
             if (characterPerDay != null) {
