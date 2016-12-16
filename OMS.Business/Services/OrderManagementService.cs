@@ -205,7 +205,9 @@ namespace OMS.Business.Services {
                 var orderList = _model.TranslatingOrders
                     .Include(a => a.OrderDetails)
                     .Include(a => a.SourceLanguage)
-                    .Include(a => a.Customer)
+                    .Include(a => a.TranslationDocument)
+                    .Include(a=>a.TargetLanguages.Select(b=>b.Language))
+                    .Include(a => a.Customer.Company)
                     .Include(a => a.TranslationQuality)
                     .Include(a => a.Terminology)
                     .Include(a => a.OrderStatus).ToList();
@@ -301,7 +303,7 @@ namespace OMS.Business.Services {
             var serviceResult = new ServiceResult<List<TranslatingOrderDto>>();
             try {
                 var orders = _model.TranslatingOrders.Where(expression).ToList();
-                serviceResult.Data = orders.Select(a => _mapper.GetMapDto<TranslatingOrderDto,TranslatingOrder>(a)).ToList();
+                serviceResult.Data = orders.Select(a => _mapper.GetMapDto<TranslatingOrderDto, TranslatingOrder>(a)).ToList();
                 serviceResult.ServiceResultType = ServiceResultType.Success;
             } catch (Exception exc) {
                 _logger.Error($"Error occured in {MethodBase.GetCurrentMethod()} with message {exc.Message}");
@@ -705,7 +707,7 @@ namespace OMS.Business.Services {
                     price = companyPriceOffer.Price;
                 }
 
-                
+
             }
             return price;
         }
